@@ -1,0 +1,25 @@
+cabs:
+  config_set:
+    flavour: python
+    command: africalim.core.config_set.config_set
+    name: config_set
+    info:
+      Set a config value via dotted key (e.g.
+      consent.status opt_in).
+    image: ghcr.io/landmanbester/africalim:init
+    inputs:
+      key:
+        info:
+          Dotted key, e.g.
+          'consent.status'.
+        required: true
+        policies:
+          positional: true
+      value:
+        info:
+          Value to assign.
+          Validated against the schema.
+        required: true
+        policies:
+          positional: true
+    outputs: {}

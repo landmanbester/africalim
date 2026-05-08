@@ -1,0 +1,10 @@
+cabs:
+  config_show:
+    flavour: python
+    command: africalim.core.config_show.config_show
+    name: config_show
+    info:
+      Print the current user config as TOML.
+    image: ghcr.io/landmanbester/africalim:init
+    inputs: {}
+    outputs: {}

@@ -49,3 +49,7 @@ Thumbs.db
 
 # AI plans
 plans/
+
+# Synthetic corpus fixture extracted at test time from
+# tests/fixtures/mini_corpus.tar.gz (see tests/conftest.py).
+tests/fixtures/mini_corpus/

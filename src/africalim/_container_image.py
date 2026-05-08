@@ -1,1 +1,1 @@
-CONTAINER_IMAGE = "ghcr.io/landmanbester/africalim:latest"
+CONTAINER_IMAGE = "ghcr.io/landmanbester/africalim:init"
