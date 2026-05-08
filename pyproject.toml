@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "hip-cargo>=0.1.3",
+    "hip-cargo @ git+https://github.com/landmanbester/hip-cargo.git@schemas",
 ]
 
 [project.urls]
