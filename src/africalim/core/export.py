@@ -127,11 +127,28 @@ def _write_stream(records: Iterable[InteractionRecord], fh: IO[str]) -> int:
     return written
 
 
-def _parse_iso(value: str | None) -> datetime | None:
-    """Parse an ISO 8601 timestamp string; ``None`` passes through."""
+_VALID_CONSENT_FILTERS: frozenset[str] = frozenset(
+    {"opt_in", "opt_out", "unset", "all"},
+)
+
+
+def _parse_iso(value: str | None, flag: str) -> datetime | None:
+    """Parse an ISO 8601 timestamp; emit a clean error on bad input.
+
+    ``flag`` is the user-facing flag name (``"since"`` / ``"until"``)
+    used in the error message. Bad input prints to stderr and raises
+    :class:`SystemExit` with exit code 1.
+    """
     if value is None:
         return None
-    return datetime.fromisoformat(value)
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        print(
+            f"Error: --{flag} value {value!r} is not a valid ISO 8601 timestamp.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from exc
 
 
 def export(
@@ -143,19 +160,27 @@ def export(
     limit: int = 10_000,
     db_path: Path | None = None,
 ) -> int:
-    """Stimela-cab entry point: export logged interactions as JSONL.
+    """Export logged interactions as JSONL.
 
-    Mirrors the CLI command's signature. ``since`` / ``until`` accept
-    ISO 8601 strings; ``db_path`` defaults to the platform path so the
+    Validates ``consent`` and the ISO 8601 ``since``/``until`` strings
+    up front so the user sees actionable error messages instead of a
+    raw traceback. ``db_path`` defaults to the platform path so the
     cab can be invoked without arguments.
     """
+    if consent not in _VALID_CONSENT_FILTERS:
+        print(
+            f"Error: --consent must be one of opt_in/opt_out/unset/all, got {consent!r}.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     target_db = db_path if db_path is not None else default_db_path()
     return export_interactions(
         target_db,
         output=output,
         consent=consent,  # type: ignore[arg-type]
         agent=agent,
-        since=_parse_iso(since),
-        until=_parse_iso(until),
+        since=_parse_iso(since, "since"),
+        until=_parse_iso(until, "until"),
         limit=limit,
     )

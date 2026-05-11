@@ -4,21 +4,18 @@ cabs:
     command: africalim.core.config_set.config_set
     name: config_set
     info:
-      Set a config value via dotted key (e.g.
-      consent.status opt_in).
+      Update a single user-config value.
     image: ghcr.io/landmanbester/africalim:init
     inputs:
       key:
         info:
-          Dotted key, e.g.
-          'consent.status'.
+          Dotted config key (section + field).
         required: true
         policies:
           positional: true
       value:
         info:
-          Value to assign.
-          Validated against the schema.
+          Value to assign, validated against the schema.
         required: true
         policies:
           positional: true

@@ -10,7 +10,7 @@ cabs:
       output:
         info:
           JSONL output file (stdout if omitted).
-        dtype: Optional[Path]
+        dtype: Optional[File]
       consent:
         info:
           'Consent filter: opt_in (default), opt_out, unset, all.'

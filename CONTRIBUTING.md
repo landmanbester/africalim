@@ -27,23 +27,24 @@ The authoritative scope document is `plans/africalim_technical_spec.md`. The act
 
 Reviewers check every PR against these:
 
-1. Agents register via the plugin pattern; the CLI's `__init__.py` calls `register(app)` for each agent module.
-2. Shared infrastructure is **injected via `HarnessDeps`**. Agents never `from africalim.core...` — they receive what they need.
-3. Interaction logging happens once, in `core/runner.py`'s `run_agent` wrapper. Agents do not log directly.
+1. **`cli/X.py` ↔ `core/X.py` ↔ `cabs/X.yml` are 1:1.** Identical filenames; one `@stimela_cab` function per `cli/X.py`; flat `core/`.
+2. **`cli/X.py` round-trips through `cabs/X.yml`.** `tests/test_roundtrip.py` enforces byte-identity. The CLI wrapper body is the canonical container-fallback boilerplate; all custom logic lives in `core/X.py`.
+3. **Shared infrastructure lives in `utils/`**, not in `core/`. The harness layer (consent, deps, logger, models, pricing, retrieval, runner, user_config, corpus_config) is in `utils/`; `core/` is reserved for one-file-per-CLI-command implementations.
+4. **Path-typed CLI params use `File`/`Directory`/`MS`/`URI` `NewType`s + `parser=parse_upath`**, never bare `Path | None`.
+5. **Help/info string spacing.** `info=`/`help=` literals must not match `\.[^\s\n]` (period-followed-by-non-space). Avoid `e.g.`, `i.e.`, dotted-key examples in info strings.
+6. **Shared infrastructure is injected via `HarnessDeps`**. Agents never `from africalim.utils...` directly — they receive what they need.
+7. **Interaction logging happens once, in `utils/runner.py`'s `run_agent` wrapper.** Agents do not log directly.
 
 If your change touches any of these invariants, link to the issue where the deviation was approved.
 
-## Adding an agent (for v0.2.0+)
+## Adding a new command (or agent)
 
-1. Open an issue proposing the agent (name following the Afrikaans-diminutive / radio-pioneer convention).
-2. Once approved, create `src/africalim/agents/<name>/` with at minimum:
-   - `agent.py` exposing `build_agent(deps: HarnessDeps) -> Agent`.
-   - `cli.py` exposing `register(app: typer.Typer) -> None`.
-   - `schemas.py` with the agent's pydantic output type.
-   - `prompts/system.md` for the system prompt.
-3. Add a thin `src/africalim/cli/<name>.py` wrapper carrying the `@stimela_cab` decorator so cab generation picks the agent up.
-4. Register the new agent in `src/africalim/cli/__init__.py`.
-5. Tests under `tests/agents/test_<name>.py` using `pydantic_ai.models.test.TestModel` (no real API calls in CI).
+1. **Write `src/africalim/cli/<name>.py`** matching the canonical shape. Easiest path: copy any existing `cli/X.py`, rename the function, adapt the parameter list, and update the `core.<name>.<name>` lazy-import target. Keep the `--backend` / `--always-pull-images` skip-marked params and the full `preflight_remote_must_exist → core delegate → run_in_container` body untouched.
+2. **Write `src/africalim/core/<name>.py`** with the actual implementation. Plain Python; raise exceptions on bad input (Typer's `CliRunner` maps `SystemExit(1)` to `exit_code == 1`). For agents specifically, `core/<name>.py` collects the schemas, system prompt, `build_agent`, and the entry-point function in one flat file — no `core/<name>/` subpackage.
+3. **Wire it into `src/africalim/cli/__init__.py`** with `app.command(name="<name>")(...)` (or under a Typer subgroup if you want subcommand grouping like `africalim config show`).
+4. **Run `uv run hip-cargo generate-cabs --module 'src/africalim/cli/*.py' --output-dir src/africalim/cabs`** (the pre-commit hook also does this on every commit). Inspect `cabs/<name>.yml` for sanity.
+5. **Run `uv run pytest tests/test_roundtrip.py`.** New `cli/X.py` files are auto-discovered and round-tripped; the test must pass byte-identical.
+6. **Add tests** under `tests/unit/test_<name>.py`. Agents use `pydantic_ai.models.test.TestModel` (no real API calls in CI).
 
 ## Development setup
 
