@@ -5,7 +5,7 @@ cabs:
     name: config_set
     info:
       Update a single user-config value.
-    image: ghcr.io/landmanbester/africalim:latest
+    image: ghcr.io/landmanbester/africalim:0.0.1
     inputs:
       key:
         info:

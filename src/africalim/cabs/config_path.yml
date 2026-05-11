@@ -5,6 +5,6 @@ cabs:
     name: config_path
     info:
       Print the path of the user-config file.
-    image: ghcr.io/landmanbester/africalim:latest
+    image: ghcr.io/landmanbester/africalim:0.0.1
     inputs: {}
     outputs: {}
