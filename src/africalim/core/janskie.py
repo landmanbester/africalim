@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelRetry, RunContext
 
 from africalim.utils.deps import CorpusConfig, HarnessDeps
 from africalim.utils.retrieval import FileContent, RepoStructure, SearchHit
@@ -176,6 +176,34 @@ def _render_corpus_summary(corpus: CorpusConfig) -> str:
     return "\n".join(lines)
 
 
+def _load_corpus_with_warnings(*, stderr: object | None = None) -> CorpusConfig:
+    """Load the user corpus config, dropping repos whose path is missing.
+
+    Each dropped repo emits one ``warning: ...`` line to ``stderr``
+    (``sys.stderr`` by default). Filtering keeps the rendered system
+    prompt and the retrieval tools in sync: the agent only sees repos
+    it can actually search. A missing corpus file yields an empty
+    config — same refusal behaviour as before this wiring landed.
+    """
+    import sys
+
+    from africalim.utils.corpus_config import load_corpus
+
+    stream = stderr if stderr is not None else sys.stderr
+
+    raw = load_corpus()
+    valid = []
+    for repo in raw.repos:
+        if repo.path.exists():
+            valid.append(repo)
+        else:
+            print(
+                f"warning: corpus repo {repo.name!r} at {repo.path} does not exist; skipping",
+                file=stream,
+            )
+    return CorpusConfig(repos=valid)
+
+
 def build_agent(
     deps: HarnessDeps,
     *,
@@ -216,7 +244,10 @@ def build_agent(
         """Search ``query`` inside the corpus repo named ``repo``."""
         from africalim.utils.retrieval import search_codebase as _search
 
-        repo_meta = ctx.deps.corpus.by_name(repo)
+        try:
+            repo_meta = ctx.deps.corpus.by_name(repo)
+        except KeyError as exc:
+            raise ModelRetry(str(exc)) from exc
         return _search(
             query,
             repo_meta.path,
@@ -235,14 +266,25 @@ def build_agent(
         """Read a file from the corpus repo. ``file_path`` is repo-relative."""
         from africalim.utils.retrieval import read_file as _read
 
-        repo_meta = ctx.deps.corpus.by_name(repo)
+        try:
+            repo_meta = ctx.deps.corpus.by_name(repo)
+        except KeyError as exc:
+            raise ModelRetry(str(exc)) from exc
         repo_root = repo_meta.path.resolve()
         target = (repo_meta.path / file_path).resolve()
         # Path-safety: target must be inside repo_root. Comparing the
         # resolved paths defeats ``..`` traversal and symlink escapes.
+        # Surface as ModelRetry so the model can correct the path rather
+        # than aborting the whole run on a bad guess.
         if target != repo_root and not str(target).startswith(str(repo_root) + "/"):
-            raise ValueError(f"file_path {file_path!r} escapes repo {repo!r}")
-        return _read(target, line_range=line_range, max_lines=max_lines)
+            raise ModelRetry(f"file_path {file_path!r} escapes repo {repo!r}")
+        try:
+            return _read(target, line_range=line_range, max_lines=max_lines)
+        except OSError as exc:
+            # Catches FileNotFoundError, IsADirectoryError, PermissionError —
+            # all of which are recoverable model mistakes (wrong path / not a
+            # file) rather than harness bugs.
+            raise ModelRetry(f"cannot read {file_path!r} in repo {repo!r}: {exc}") from exc
 
     @agent.tool
     async def list_repo_structure(
@@ -253,7 +295,10 @@ def build_agent(
         """List the structure of a corpus repo (top-level by default)."""
         from africalim.utils.retrieval import list_repo_structure as _list
 
-        repo_meta = ctx.deps.corpus.by_name(repo)
+        try:
+            repo_meta = ctx.deps.corpus.by_name(repo)
+        except KeyError as exc:
+            raise ModelRetry(str(exc)) from exc
         return _list(repo_meta.path, max_depth=max_depth)
 
     return agent
@@ -292,7 +337,7 @@ def janskie(
 
     import africalim
     from africalim.utils.consent import ConsentManager, default_config_path
-    from africalim.utils.deps import CorpusConfig, HarnessDeps
+    from africalim.utils.deps import HarnessDeps
     from africalim.utils.logger import InteractionLogger
     from africalim.utils.models import build_model
     from africalim.utils.retrieval import get_repo_version
@@ -316,9 +361,10 @@ def janskie(
         raise typer.Exit(code=1)
     model_provider, model_name = model_str.split(":", 1)
 
-    # 3. Build harness deps. Corpus is empty until the corpus-config
-    #    layer is wired in; the logger DB lives in the user's data dir.
-    corpus = CorpusConfig(repos=[])
+    # 3. Build harness deps. Load corpus from user config and filter out
+    #    repos whose on-disk path is missing so the system prompt and
+    #    retrieval tools agree about what is searchable.
+    corpus = _load_corpus_with_warnings()
     db_path = platformdirs.user_data_path("africalim") / "interactions.db"
     logger = InteractionLogger(db_path)
     deps = HarnessDeps(

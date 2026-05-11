@@ -72,7 +72,17 @@ git clone https://github.com/ratt-ru/pfb-imaging ~/.cache/africalim/corpus/pfb-i
 git clone https://github.com/ratt-ru/QuartiCal   ~/.cache/africalim/corpus/QuartiCal
 ```
 
-Once janskie has at least one corpus repo configured, it will refuse to speculate on questions it can't ground in code.
+Verify by asking janskie a corpus-grounded question:
+
+```bash
+africalim janskie --question "How does pfb-imaging select a gridder backend?"
+```
+
+A working setup produces a `confidence: medium` or `high` answer with one or more entries under `Sources` pointing at concrete files. Three behaviours to know about:
+
+- **No corpus configured.** Janskie refuses code-specific questions and returns `confidence: low` with a caveat telling you to run `africalim config` / edit `corpus.toml`. Same response when `corpus.toml` exists but has no `[[repo]]` entries.
+- **Configured repo whose path is missing on disk.** Janskie prints a `warning: corpus repo 'X' at ... does not exist; skipping` line to stderr and continues with the repos that do exist. Use this to spot stale or typo'd paths quickly.
+- **All configured repos missing.** Janskie behaves as if no corpus is configured.
 
 ## Inspecting and exporting your interactions
 

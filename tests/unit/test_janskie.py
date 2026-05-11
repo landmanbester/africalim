@@ -26,6 +26,7 @@ from africalim.core.janskie import (
     JANSKIE_AGENT_VERSION,
     JanskieOutput,
     SourceCitation,
+    _load_corpus_with_warnings,
     _render_corpus_summary,
     build_agent,
 )
@@ -181,3 +182,61 @@ def test_build_agent_registers_three_tools(deps_with_corpus: HarnessDeps) -> Non
     # acceptable for a smoke test and is asserted in unit-test scope only.
     tool_names = set(agent._function_toolset.tools.keys())
     assert {"search_codebase", "read_file", "list_repo_structure"} <= tool_names, tool_names
+
+
+def _write_corpus_toml(path: Path, entries: list[dict[str, str]]) -> None:
+    """Tiny helper: write a corpus.toml with the given [[repo]] entries."""
+    lines: list[str] = []
+    for entry in entries:
+        lines.append("[[repo]]")
+        for key, value in entry.items():
+            lines.append(f'{key} = "{value}"')
+        lines.append("")
+    path.write_text("\n".join(lines))
+
+
+def test_load_corpus_with_warnings_filters_missing_paths(
+    tmp_path: Path,
+    mini_corpus_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Missing on-disk paths are dropped; one warning per drop hits stderr."""
+    corpus_toml = tmp_path / "corpus.toml"
+    bogus_path = tmp_path / "nope" / "missing-repo"
+    _write_corpus_toml(
+        corpus_toml,
+        [
+            {"name": "good", "path": str(mini_corpus_path), "ref": "main"},
+            {"name": "ghost", "path": str(bogus_path), "ref": "main"},
+        ],
+    )
+    monkeypatch.setattr(
+        "africalim.utils.corpus_config.default_corpus_path",
+        lambda: corpus_toml,
+    )
+
+    corpus = _load_corpus_with_warnings()
+
+    assert [r.name for r in corpus.repos] == ["good"]
+    captured = capsys.readouterr()
+    assert "ghost" in captured.err
+    assert str(bogus_path) in captured.err
+    assert "good" not in captured.err
+
+
+def test_load_corpus_with_warnings_missing_file_is_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing corpus.toml yields an empty config and no warnings."""
+    monkeypatch.setattr(
+        "africalim.utils.corpus_config.default_corpus_path",
+        lambda: tmp_path / "does-not-exist.toml",
+    )
+
+    corpus = _load_corpus_with_warnings()
+
+    assert corpus.repos == []
+    assert capsys.readouterr().err == ""
