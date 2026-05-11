@@ -78,7 +78,3 @@ search = 'version = "{current_version}"'
 [[file]]
 src = "src/africalim/__init__.py"
 search = '__version__ = "{current_version}"'
-
-[[file]]
-src = "src/africalim/_container_image.py"
-search = 'CONTAINER_IMAGE = "ghcr.io/landmanbester/africalim:{current_version}"'
