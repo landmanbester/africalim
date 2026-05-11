@@ -1,0 +1,10 @@
+cabs:
+  config_path:
+    flavour: python
+    command: africalim.core.config_path.config_path
+    name: config_path
+    info:
+      Print the path of the user-config file.
+    image: ghcr.io/landmanbester/africalim:init
+    inputs: {}
+    outputs: {}

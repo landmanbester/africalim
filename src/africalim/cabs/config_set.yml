@@ -1,0 +1,22 @@
+cabs:
+  config_set:
+    flavour: python
+    command: africalim.core.config_set.config_set
+    name: config_set
+    info:
+      Update a single user-config value.
+    image: ghcr.io/landmanbester/africalim:init
+    inputs:
+      key:
+        info:
+          Dotted config key (section + field).
+        required: true
+        policies:
+          positional: true
+      value:
+        info:
+          Value to assign, validated against the schema.
+        required: true
+        policies:
+          positional: true
+    outputs: {}

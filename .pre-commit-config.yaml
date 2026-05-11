@@ -51,7 +51,7 @@ repos:
 
       - id: generate-cabs
         name: Generate Stimela cab definitions
-        entry: africalim generate-cabs --module src/africalim/cli/*.py --output-dir src/africalim/cabs
+        entry: hip-cargo generate-cabs --module src/africalim/cli/*.py --output-dir src/africalim/cabs
         language: system
         always_run: true
         pass_filenames: false

@@ -1,0 +1,29 @@
+cabs:
+  janskie:
+    flavour: python
+    command: africalim.core.janskie.janskie
+    name: janskie
+    info:
+      Ask janskie a question about radio interferometry tooling.
+    image: ghcr.io/landmanbester/africalim:init
+    inputs:
+      question:
+        info:
+          Question to ask janskie
+        required: true
+        policies:
+          positional: true
+      provider:
+        info:
+          LLM provider override (for example anthropic or openai).
+        dtype: Optional[str]
+      model:
+        info:
+          Model name override within the provider.
+        dtype: Optional[str]
+      no-log:
+        info:
+          Skip logging this interaction.
+        dtype: bool
+        default: false
+    outputs: {}

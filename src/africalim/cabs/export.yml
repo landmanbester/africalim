@@ -1,0 +1,35 @@
+cabs:
+  export:
+    flavour: python
+    command: africalim.core.export.export
+    name: export
+    info:
+      Export logged interactions as JSONL.
+    image: ghcr.io/landmanbester/africalim:init
+    inputs:
+      output:
+        info:
+          JSONL output file (stdout if omitted).
+        dtype: Optional[File]
+      consent:
+        info:
+          'Consent filter: opt_in (default), opt_out, unset, all.'
+        default: opt_in
+      agent:
+        info:
+          Filter by agent name.
+        dtype: Optional[str]
+      since:
+        info:
+          ISO 8601 inclusive lower bound on timestamp.
+        dtype: Optional[str]
+      until:
+        info:
+          ISO 8601 inclusive upper bound on timestamp.
+        dtype: Optional[str]
+      limit:
+        info:
+          Max records to read from the log before filtering.
+        dtype: int
+        default: 10000
+    outputs: {}
