@@ -59,7 +59,7 @@ jobs:
           "
 
       - name: Regenerate cab definitions with latest tag
-        run: uv run africalim generate-cabs --module 'src/africalim/cli/*.py' --output-dir src/africalim/cabs
+        run: uv run hip-cargo generate-cabs --module 'src/africalim/cli/*.py' --output-dir src/africalim/cabs
 
       - name: Check for changes
         id: check_changes
