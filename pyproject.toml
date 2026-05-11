@@ -1,6 +1,6 @@
 [project]
 name = "africalim"
-version = "0.0.1"
+version = "0.0.0"
 description = "Radio astronomy tidbits"
 readme = "README.md"
 requires-python = ">=3.10"
