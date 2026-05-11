@@ -5,7 +5,7 @@ cabs:
     name: export
     info:
       Export logged interactions as JSONL.
-    image: ghcr.io/landmanbester/africalim:0.0.1
+    image: ghcr.io/landmanbester/africalim:latest
     inputs:
       output:
         info:
