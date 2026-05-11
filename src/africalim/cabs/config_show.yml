@@ -5,6 +5,6 @@ cabs:
     name: config_show
     info:
       Print the current user config as TOML.
-    image: ghcr.io/landmanbester/africalim:init
+    image: ghcr.io/landmanbester/africalim:fix-cab-generation
     inputs: {}
     outputs: {}

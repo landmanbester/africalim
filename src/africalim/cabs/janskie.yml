@@ -5,7 +5,7 @@ cabs:
     name: janskie
     info:
       Ask janskie a question about radio interferometry tooling.
-    image: ghcr.io/landmanbester/africalim:init
+    image: ghcr.io/landmanbester/africalim:fix-cab-generation
     inputs:
       question:
         info:
