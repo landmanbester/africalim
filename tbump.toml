@@ -50,7 +50,7 @@ cmd = "python -c \"import re; p = 'src/africalim/_container_image.py'; t = open(
 
 [[before_commit]]
 name = "Regenerate cab definitions with release version"
-cmd = "africalim generate-cabs --module 'src/africalim/cli/*.py' --output-dir src/africalim/cabs"
+cmd = "hip-cargo generate-cabs --module 'src/africalim/cli/*.py' --output-dir src/africalim/cabs"
 
 [[before_commit]]
 name = "Stage updated cab definitions"
