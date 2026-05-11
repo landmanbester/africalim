@@ -10,7 +10,7 @@ from africalim.cli import app
 def test_help_lists_all_v0_commands() -> None:
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("onboard", "janskie", "config", "export"):
+    for command in ("janskie", "config", "export"):
         assert command in result.stdout, result.stdout
 
 

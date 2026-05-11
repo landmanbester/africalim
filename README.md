@@ -110,7 +110,6 @@ africalim config set consent.status opt_out
 ## CLI reference
 
 ```
-africalim onboard                  # one-time setup hints (CI/CD, PyPI, branch protection)
 africalim janskie "<question>"     # ask a question
 africalim config show              # print the user config
 africalim config set <key> <value> # update a config value (dotted key)

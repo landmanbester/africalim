@@ -16,10 +16,6 @@ def callback() -> None:
 
 
 # Register subcommands below. Imports go here (bottom) to avoid circular imports.
-from africalim.cli.onboard import onboard  # noqa: E402
-
-app.command(name="onboard")(onboard)
-
 from africalim.cli.janskie import janskie  # noqa: E402
 
 app.command(name="janskie")(janskie)
