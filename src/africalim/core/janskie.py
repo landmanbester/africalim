@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai.models import Model
 
 from africalim.utils.deps import CorpusConfig, HarnessDeps
 from africalim.utils.retrieval import FileContent, RepoStructure, SearchHit
@@ -223,7 +224,7 @@ def _load_corpus_with_warnings(*, stderr: object | None = None) -> CorpusConfig:
 def build_agent(
     deps: HarnessDeps,
     *,
-    model: str = "anthropic:claude-sonnet-4-6",
+    model: str | Model = "anthropic:claude-sonnet-4-6",
 ) -> Agent[HarnessDeps, JanskieOutput]:
     """Construct the janskie agent wired to harness retrieval primitives.
 
@@ -231,8 +232,13 @@ def build_agent(
         deps: Harness deps. Used at build time only to render the
             ``{corpus_summary}`` placeholder; per-run resolution still
             happens via ``RunContext[HarnessDeps].deps`` inside each tool.
-        model: Pydantic-ai model identifier ``"<provider>:<model_name>"``.
-            Defaults to ``"anthropic:claude-sonnet-4-6"``.
+        model: Either a pydantic-ai model identifier
+            ``"<provider>:<model_name>"`` or a concrete
+            :class:`pydantic_ai.models.Model` instance. Strings trigger
+            eager provider construction (and the matching API-key
+            check); a ``Model`` instance bypasses that, which is what
+            tests use to stay hermetic. Defaults to the production
+            string identifier ``"anthropic:claude-sonnet-4-6"``.
 
     Returns:
         A configured ``Agent[HarnessDeps, JanskieOutput]`` ready to be

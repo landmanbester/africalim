@@ -66,18 +66,17 @@ def test_janskie_returns_structured_output_and_logs(deps_with_corpus: HarnessDep
     """End-to-end: TestModel produces a JanskieOutput; row is persisted."""
     from africalim.utils.runner import run_agent_sync
 
-    agent = build_agent(deps_with_corpus, model="anthropic:claude-sonnet-4-6")
-    with agent.override(model=TestModel(call_tools=[])):
-        result = run_agent_sync(
-            agent,
-            "what does synthcal do?",
-            deps_with_corpus,
-            agent_name=JANSKIE_AGENT_NAME,
-            agent_version=JANSKIE_AGENT_VERSION,
-            model_provider="anthropic",
-            model_name="claude-sonnet-4-6",
-            corpus_versions={"synthcal": "24470c8"},
-        )
+    agent = build_agent(deps_with_corpus, model=TestModel(call_tools=[]))
+    result = run_agent_sync(
+        agent,
+        "what does synthcal do?",
+        deps_with_corpus,
+        agent_name=JANSKIE_AGENT_NAME,
+        agent_version=JANSKIE_AGENT_VERSION,
+        model_provider="anthropic",
+        model_name="claude-sonnet-4-6",
+        corpus_versions={"synthcal": "24470c8"},
+    )
 
     assert isinstance(result.output, JanskieOutput)
     assert result.output.confidence in {"high", "medium", "low"}
@@ -114,17 +113,16 @@ def test_janskie_consent_drives_upload_status(
         harness_version="0.1.0-test",
     )
 
-    agent = build_agent(deps, model="anthropic:claude-sonnet-4-6")
-    with agent.override(model=TestModel(call_tools=[])):
-        run_agent_sync(
-            agent,
-            "hello?",
-            deps,
-            agent_name=JANSKIE_AGENT_NAME,
-            agent_version=JANSKIE_AGENT_VERSION,
-            model_provider="anthropic",
-            model_name="claude-sonnet-4-6",
-        )
+    agent = build_agent(deps, model=TestModel(call_tools=[]))
+    run_agent_sync(
+        agent,
+        "hello?",
+        deps,
+        agent_name=JANSKIE_AGENT_NAME,
+        agent_version=JANSKIE_AGENT_VERSION,
+        model_provider="anthropic",
+        model_name="claude-sonnet-4-6",
+    )
 
     [row] = deps.logger.list_interactions()
     assert row.consent_status == "opt_out"
@@ -134,18 +132,17 @@ def test_janskie_consent_drives_upload_status(
 def test_janskie_no_log_skips_persistence(deps_with_corpus: HarnessDeps) -> None:
     from africalim.utils.runner import run_agent_sync
 
-    agent = build_agent(deps_with_corpus, model="anthropic:claude-sonnet-4-6")
-    with agent.override(model=TestModel(call_tools=[])):
-        run_agent_sync(
-            agent,
-            "hello?",
-            deps_with_corpus,
-            agent_name=JANSKIE_AGENT_NAME,
-            agent_version=JANSKIE_AGENT_VERSION,
-            model_provider="anthropic",
-            model_name="claude-sonnet-4-6",
-            no_log=True,
-        )
+    agent = build_agent(deps_with_corpus, model=TestModel(call_tools=[]))
+    run_agent_sync(
+        agent,
+        "hello?",
+        deps_with_corpus,
+        agent_name=JANSKIE_AGENT_NAME,
+        agent_version=JANSKIE_AGENT_VERSION,
+        model_provider="anthropic",
+        model_name="claude-sonnet-4-6",
+        no_log=True,
+    )
     assert deps_with_corpus.logger.list_interactions() == []
 
 
@@ -177,7 +174,7 @@ def test_render_corpus_summary_empty_uses_sentinel() -> None:
 
 def test_build_agent_registers_three_tools(deps_with_corpus: HarnessDeps) -> None:
     """Smoke-check that the agent has the three janskie tools attached."""
-    agent = build_agent(deps_with_corpus, model="anthropic:claude-sonnet-4-6")
+    agent = build_agent(deps_with_corpus, model=TestModel(call_tools=[]))
     # `agent._function_toolset.tools` is the dict of `@agent.tool`-registered
     # tools in pydantic-ai 1.x. Reaching into the underscore attribute is
     # acceptable for a smoke test and is asserted in unit-test scope only.
