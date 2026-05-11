@@ -412,3 +412,58 @@ async def test_usage_failure_yields_none_cost(deps: HarnessDeps, monkeypatch: py
 
     [row] = deps.logger.list_interactions()
     assert row.cost_usd_estimate is None
+
+
+# --------------------------------------------------------------------------- #
+# 10. output_post_process hook
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_output_post_process_mutates_logged_output(deps: HarnessDeps) -> None:
+    """The hook fires before logging; the row reflects the mutation."""
+    agent = _build_simple_agent()
+
+    def _mutate(output: Out) -> None:
+        output.answer = "post-processed"
+
+    result = await run_agent(
+        agent,
+        "hi",
+        deps,
+        agent_name="janskie",
+        agent_version="0.1.0",
+        model_provider="test",
+        model_name="test-model",
+        output_post_process=_mutate,
+    )
+
+    assert result.output.answer == "post-processed"
+    [row] = deps.logger.list_interactions()
+    assert row.final_output == {"answer": "post-processed"}
+
+
+@pytest.mark.asyncio
+async def test_output_post_process_exception_is_swallowed(deps: HarnessDeps) -> None:
+    """A throwing hook must not kill the run — the row still lands."""
+    agent = _build_simple_agent()
+
+    def _boom(output: Out) -> None:
+        raise RuntimeError("backfill bug")
+
+    result = await run_agent(
+        agent,
+        "hi",
+        deps,
+        agent_name="janskie",
+        agent_version="0.1.0",
+        model_provider="test",
+        model_name="test-model",
+        output_post_process=_boom,
+    )
+
+    # Run succeeded; row was logged with the original (un-mutated) output.
+    assert isinstance(result.output, Out)
+    [row] = deps.logger.list_interactions()
+    assert row.error is None
+    assert row.final_output == result.output.model_dump()

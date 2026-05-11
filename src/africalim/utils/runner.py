@@ -33,7 +33,7 @@ from __future__ import annotations
 import asyncio
 import time
 import traceback
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -193,6 +193,7 @@ async def run_agent(
     model_provider: str,
     model_name: str,
     corpus_versions: Mapping[str, str] | None = None,
+    output_post_process: Callable[[Any], None] | None = None,
     no_log: bool = False,
 ) -> AgentRunResult[Any]:
     """Run ``agent`` against ``user_input`` and persist an interaction record.
@@ -216,6 +217,12 @@ async def run_agent(
         model_name: Model name within the provider.
         corpus_versions: Optional name → commit-hash map captured for
             this run. Stored verbatim on the row.
+        output_post_process: Optional callback invoked with
+            ``result.output`` after a successful run, before the
+            interaction is logged and returned. Intended for agent-level
+            post-processing such as backfilling values the model could
+            not produce itself. Exceptions raised by the callback are
+            swallowed so a backfill bug cannot kill a successful run.
         no_log: When ``True``, the agent runs but no row is written.
 
     Returns:
@@ -267,6 +274,15 @@ async def run_agent(
         # decide whether to re-raise, transform, or just print.
         raise AgentRunFailure(str(exc), row_id=row_id, original=exc) from exc
 
+    if output_post_process is not None:
+        try:
+            output_post_process(result.output)
+        except Exception:
+            # Silent fallback: a backfill bug must not kill an
+            # otherwise-successful run. The logged row keeps whatever
+            # the model originally produced.
+            pass
+
     duration_ms = int((time.perf_counter() - start_perf) * 1000)
     input_tokens, output_tokens = _safe_usage_tokens(result)
     cost = estimate_cost_usd(model_provider, model_name, input_tokens, output_tokens)
@@ -303,6 +319,7 @@ def run_agent_sync(
     model_provider: str,
     model_name: str,
     corpus_versions: Mapping[str, str] | None = None,
+    output_post_process: Callable[[Any], None] | None = None,
     no_log: bool = False,
 ) -> AgentRunResult[Any]:
     """Sync wrapper around :func:`run_agent` for Typer commands.
@@ -322,6 +339,7 @@ def run_agent_sync(
             model_provider=model_provider,
             model_name=model_name,
             corpus_versions=corpus_versions,
+            output_post_process=output_post_process,
             no_log=no_log,
         )
     )

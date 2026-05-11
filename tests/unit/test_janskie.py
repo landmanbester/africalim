@@ -26,6 +26,7 @@ from africalim.core.janskie import (
     JANSKIE_AGENT_VERSION,
     JanskieOutput,
     SourceCitation,
+    _backfill_commit_hashes,
     _load_corpus_with_warnings,
     _render_corpus_summary,
     build_agent,
@@ -240,3 +241,38 @@ def test_load_corpus_with_warnings_missing_file_is_empty(
 
     assert corpus.repos == []
     assert capsys.readouterr().err == ""
+
+
+def test_backfill_commit_hashes_fills_empty_only() -> None:
+    """Empty commit_hash gets the snapshot value; non-empty is preserved."""
+    output = JanskieOutput(
+        answer="x",
+        sources=[
+            SourceCitation(repo="alpha", file_path="a.py", commit_hash=""),
+            SourceCitation(repo="beta", file_path="b.py", commit_hash="preset"),
+            SourceCitation(repo="alpha", file_path="c.py", commit_hash=""),
+        ],
+        confidence="medium",
+    )
+    corpus_versions = {"alpha": "aaa111", "beta": "bbb222"}
+
+    _backfill_commit_hashes(output, corpus_versions)
+
+    assert output.sources[0].commit_hash == "aaa111"
+    assert output.sources[1].commit_hash == "preset"  # not overwritten
+    assert output.sources[2].commit_hash == "aaa111"
+
+
+def test_backfill_commit_hashes_leaves_unknown_repos_untouched() -> None:
+    """A citation referencing a repo absent from the snapshot is left as-is."""
+    output = JanskieOutput(
+        answer="x",
+        sources=[
+            SourceCitation(repo="orphan", file_path="x.py", commit_hash=""),
+        ],
+        confidence="low",
+    )
+
+    _backfill_commit_hashes(output, {"alpha": "aaa111"})
+
+    assert output.sources[0].commit_hash == ""

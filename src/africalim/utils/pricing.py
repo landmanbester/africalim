@@ -22,10 +22,17 @@ from __future__ import annotations
 # (provider, model_name) -> (input_usd_per_million_tokens, output_usd_per_million_tokens).
 #
 # Rough estimates current as of the Claude knowledge cutoff; update via PR.
+# OpenRouter-routed Anthropic models are listed at their underlying Anthropic
+# prices; OpenRouter adds a small (~5%) passthrough markup that we ignore at
+# this level of estimate. Update via PR when new models become commonly used.
 PROVIDER_PRICES: dict[tuple[str, str], tuple[float, float]] = {
     ("anthropic", "claude-sonnet-4-6"): (3.00, 15.00),
     ("anthropic", "claude-opus-4-7"): (15.00, 75.00),
     ("anthropic", "claude-haiku-4-5"): (1.00, 5.00),
+    ("openrouter", "anthropic/claude-haiku-4-5"): (1.00, 5.00),
+    ("openrouter", "anthropic/claude-sonnet-4"): (3.00, 15.00),
+    ("openrouter", "anthropic/claude-sonnet-4-6"): (3.00, 15.00),
+    ("openrouter", "anthropic/claude-opus-4-7"): (15.00, 75.00),
 }
 
 

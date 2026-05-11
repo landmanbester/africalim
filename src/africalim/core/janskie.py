@@ -176,6 +176,22 @@ def _render_corpus_summary(corpus: CorpusConfig) -> str:
     return "\n".join(lines)
 
 
+def _backfill_commit_hashes(output: JanskieOutput, corpus_versions: dict[str, str]) -> None:
+    """Fill in empty ``commit_hash`` on each citation from ``corpus_versions``.
+
+    The system prompt tells the model to leave ``commit_hash`` empty
+    when it does not know the value, with the harness backfilling from
+    the corpus snapshot taken at run start. The lookup is by repo name;
+    citations referencing a repo that is not in ``corpus_versions`` are
+    left untouched. Mutates ``output`` in place.
+    """
+    for src in output.sources:
+        if not src.commit_hash:
+            backfill = corpus_versions.get(src.repo)
+            if backfill:
+                src.commit_hash = backfill
+
+
 def _load_corpus_with_warnings(*, stderr: object | None = None) -> CorpusConfig:
     """Load the user corpus config, dropping repos whose path is missing.
 
@@ -387,7 +403,13 @@ def janskie(
         version = get_repo_version(repo.path)
         corpus_versions[repo.name] = version.commit_hash or ""
 
-    # 6. Run.
+    # 6. Run. The output post-process closure backfills empty
+    #    commit_hash values on each citation from the corpus snapshot
+    #    taken in step 5 — runs before the row is logged so the
+    #    persisted record carries the correct hashes.
+    def _backfill(output: JanskieOutput) -> None:
+        _backfill_commit_hashes(output, corpus_versions)
+
     try:
         result = run_agent_sync(
             agent,
@@ -398,6 +420,7 @@ def janskie(
             model_provider=model_provider,
             model_name=model_name,
             corpus_versions=corpus_versions,
+            output_post_process=_backfill,
             no_log=no_log,
         )
     except AgentRunFailure as exc:
